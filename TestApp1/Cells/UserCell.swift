@@ -15,6 +15,11 @@ class UserCell: UITableViewCell {
     @IBOutlet weak var nameLabel: UILabel!
     @IBOutlet weak var avatarImgView: UIImageView!
     
+    override func prepareForReuse() {
+        statusView.isHidden = true
+        avatarImgView.image = nil
+    }
+    
     
     override func awakeFromNib() {
         super.awakeFromNib()

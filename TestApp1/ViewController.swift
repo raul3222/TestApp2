@@ -22,6 +22,7 @@ class ViewController: UIViewController {
     var previousVisitorsSelectedCell: IndexPath = IndexPath(item: 0, section: 0)
     var previousUsersSelectedCell: IndexPath = IndexPath(item: 0, section: 0)
     var users: [User]?
+    var statistics: [Statistic]?
     override func viewDidLoad() {
         super.viewDidLoad()
         visitorsFilterCollectionView.dataSource = self
@@ -33,8 +34,10 @@ class ViewController: UIViewController {
         usersTableView.rowHeight = 62
         configureRefreshControl()
        
-        subscribeUsers()
+        subscribe()
         getUsers()
+        
+        NetworkManager.shared.getStatistics()
     }
     
     private func getUsers() {
@@ -43,19 +46,41 @@ class ViewController: UIViewController {
         }
     }
     
-    private func subscribeUsers() {
+    private func subscribe() {
         StorageManager.shared.$users
             .receive(on: DispatchQueue.main)
             .sink { users in
                 guard let users = users else { return }
                 self.users = users
-                self.usersTableView.reloadData()
-                self.refreshControl.addTarget(self, action: #selector(self.refreshAllData), for: UIControl.Event.valueChanged)
                 self.refreshControl.endRefreshing()
-                
-
+                self.process()
             }
             .store(in: &cancallables)
+        
+        StorageManager.shared.$statistics
+            .receive(on: DispatchQueue.main)
+            .sink { statistics in
+                guard let statistics = statistics else { return }
+                self.statistics = statistics
+                self.process()
+            }
+            .store(in: &cancallables)
+    }
+    
+    private func process() {
+        guard let users = users,
+              var statistics = statistics else { return }
+        
+        statistics = statistics.sorted(by: {$0.dates.count > $1.dates.count})
+        var usersArray: [User] = []
+        for (index, stat) in statistics.enumerated() {
+            for user in users {
+                if user.id == stat.user_id {
+//                    usersArray.isEmpty ? usersArray = [] : usersArray.append(user)
+                }
+            }
+        }
+        self.usersTableView.reloadData()
     }
     
     private func configureRefreshControl() {
@@ -71,7 +96,8 @@ class ViewController: UIViewController {
     
     @objc private func refreshAllData() {
         NetworkManager.shared.fetchUsers()
-        refreshControl.removeTarget(self, action: #selector(refreshAllData), for: UIControl.Event.valueChanged)
+        NetworkManager.shared.getStatistics()
+//        refreshControl.removeTarget(self, action: #selector(refreshAllData), for: UIControl.Event.valueChanged)
     }
 }
 

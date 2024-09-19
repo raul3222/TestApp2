@@ -52,6 +52,25 @@ public class NetworkManager {
         .resume()
     }
     
+    public func getStatistics() {
+        guard let url = URL(string: "https://cars.cprogroup.ru/api/episode/statistics/") else { return }
+        URLSession.shared.dataTask(with: url) { data, response, error in
+            guard let data = data else { return }
+            guard let response = response as? HTTPURLResponse,
+                  response.statusCode == 200 else { return }
+            do {
+                let statistics = try JSONDecoder().decode(Statistics.self, from: data)
+                print(statistics)
+                Task {
+                    try? await StorageManager.shared.save(statistics: statistics)
+                }
+            } catch {
+                
+            }
+        }
+        .resume()
+    }
+    
     public func fetchAvatar(from url: String, completion: @escaping(UIImage?) -> ()) {
         guard let url = URL(string: url) else { return }
         if let cachedImage = imageCache.object(forKey: url.absoluteString as NSString) {

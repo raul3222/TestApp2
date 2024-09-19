@@ -13,7 +13,7 @@ public class Users: Object, Codable {
 }
 
  public class User: Object, Codable {
-    @Persisted var id: Int
+    @Persisted public var id: Int
     @Persisted public var sex: String
     @Persisted public var username: String
     @Persisted public var isOnline: Bool

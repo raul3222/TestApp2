@@ -22,6 +22,23 @@ public class StorageManager {
         }
     }
     
+    @Published public var statistics: [Statistic]? {
+        didSet {
+            var st: AnyPublisher<[Statistic]?, Never> {
+                $statistics
+                    .eraseToAnyPublisher()
+            }
+        }
+    }
+    
+    @MainActor func save(statistics: Statistics) async throws {
+        self.statistics = Array(_immutableCocoaArray: statistics.statistics)
+        let realm = try! await Realm()
+        try! realm.write {
+            realm.add(statistics)
+        }
+    }
+    
     @MainActor func save(users: Users) async throws {
          self.users = Array(_immutableCocoaArray: users.users)
         let realm = try! await Realm()
@@ -37,11 +54,11 @@ public class StorageManager {
           return true
       }
     
-     func deleteAll() {
-         let realm = try! Realm()
-         try! realm.write {
-             realm.deleteAll()
-         }
+    public func getStatistics() -> Bool {
+      let realm = try! Realm()
+        guard let statistics = realm.objects(Statistics.self).first else { return false}
+        self.users = Array(_immutableCocoaArray: statistics.statistics)
+        return true
     }
 }
 
