@@ -15,5 +15,5 @@ public class Statistics: Object, Codable {
 public class Statistic: Object, Codable {
     @Persisted public var user_id: Int
     @Persisted public var type: String
-    @Persisted public var dates = List<Double>()
+    @Persisted public var dates = List<Int>()
 }

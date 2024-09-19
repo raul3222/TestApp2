@@ -8,14 +8,22 @@
 import UIKit
 import TestApp1Framework
 import Combine
+import SwiftUI
 
 class ViewController: UIViewController {
+    
+    
+    @IBOutlet weak var usersCount: UILabel!
+    @IBOutlet weak var unsibscribedCountLabel: UILabel!
+    @IBOutlet weak var newSubscribersCountLabel: UILabel!
+    @IBOutlet weak var sexAgeView: UIView!
     var cancallables: Set<AnyCancellable> = []
+    @IBOutlet weak var statisticsView: UIView!
     @IBOutlet weak var scrollView: UIScrollView!
     @IBOutlet weak var usersTableView: UITableView!
     @IBOutlet weak var usersFilterCollectionView: UICollectionView!
     @IBOutlet weak var visitorsFilterCollectionView: UICollectionView!
-    let networkManager = NetworkManager.shared
+    
     let refreshControl = UIRefreshControl()
     let visitorsFiltersArray: [String] = ["По дням", "По неделям", "По месяцам"]
     let usersFiltersArray: [String] = ["Сегодня", "Неделя", "Месяц", "Все время"]
@@ -25,6 +33,12 @@ class ViewController: UIViewController {
     var statistics: [Statistic]?
     override func viewDidLoad() {
         super.viewDidLoad()
+        setupCollections()
+        subscribe()
+        getUsers()
+    }
+    
+    private func setupCollections() {
         visitorsFilterCollectionView.dataSource = self
         visitorsFilterCollectionView.delegate = self
         usersFilterCollectionView.dataSource = self
@@ -33,19 +47,60 @@ class ViewController: UIViewController {
         usersTableView.delegate = self
         usersTableView.rowHeight = 62
         configureRefreshControl()
-       
-        subscribe()
-        getUsers()
-        
-        NetworkManager.shared.getStatistics()
     }
     
     private func getUsers() {
         if  !StorageManager.shared.getUsers() {
             NetworkManager.shared.fetchUsers()
         }
+        if !StorageManager.shared.getStatistics() {
+            NetworkManager.shared.getStatistics()
+        }
     }
     
+    private func addChart1() {
+        let vc = UIHostingController(rootView: ChartView())
+           let swiftuiView = vc.view!
+           swiftuiView.translatesAutoresizingMaskIntoConstraints = false
+            statisticsView.addSubview(swiftuiView)
+           NSLayoutConstraint.activate([
+            swiftuiView.leadingAnchor.constraint(equalTo: statisticsView.leadingAnchor, constant: 16),
+            swiftuiView.trailingAnchor.constraint(equalTo: statisticsView.trailingAnchor, constant: -16),
+            swiftuiView.topAnchor.constraint(equalTo: statisticsView.topAnchor, constant: 16),
+            swiftuiView.bottomAnchor.constraint(equalTo: statisticsView.bottomAnchor, constant: -16)
+           ])
+           vc.didMove(toParent: self)
+    }
+    private func addChart2() {
+        let vc = UIHostingController(rootView: SectorChartExample())
+           let swiftuiView = vc.view!
+           swiftuiView.translatesAutoresizingMaskIntoConstraints = false
+            sexAgeView.addSubview(swiftuiView)
+           
+           NSLayoutConstraint.activate([
+            swiftuiView.leadingAnchor.constraint(equalTo: sexAgeView.leadingAnchor, constant: 16),
+            swiftuiView.trailingAnchor.constraint(equalTo: sexAgeView.trailingAnchor, constant: -16),
+            swiftuiView.topAnchor.constraint(equalTo: sexAgeView.topAnchor, constant: 16),
+            swiftuiView.heightAnchor.constraint(equalToConstant: 151)
+           ])
+           vc.didMove(toParent: self)
+    }
+    
+    private func addChart3() {
+        let vc = UIHostingController(rootView: BarChart())
+           let swiftuiView = vc.view!
+           swiftuiView.translatesAutoresizingMaskIntoConstraints = false
+            sexAgeView.addSubview(swiftuiView)
+            
+           NSLayoutConstraint.activate([
+            swiftuiView.leadingAnchor.constraint(equalTo: sexAgeView.leadingAnchor, constant: 16),
+            swiftuiView.trailingAnchor.constraint(equalTo: sexAgeView.trailingAnchor, constant: -16),
+            swiftuiView.topAnchor.constraint(equalTo: sexAgeView.topAnchor, constant: 180),
+            swiftuiView.bottomAnchor.constraint(equalTo: sexAgeView.bottomAnchor, constant: -16)
+           ])
+           vc.didMove(toParent: self)
+    }
+
     private func subscribe() {
         StorageManager.shared.$users
             .receive(on: DispatchQueue.main)
@@ -67,19 +122,21 @@ class ViewController: UIViewController {
             .store(in: &cancallables)
     }
     
+    private func setupLabels() {
+        let newSubsCount = StorageManager.shared.getNewSubscribersCount()
+        let unsubscribed = StorageManager.shared.getUnsubscribedCount()
+        
+        newSubscribersCountLabel.text = "\(newSubsCount)"
+        unsibscribedCountLabel.text = "\(unsubscribed)"
+    }
+    
     private func process() {
         guard let users = users,
-              var statistics = statistics else { return }
-        
-        statistics = statistics.sorted(by: {$0.dates.count > $1.dates.count})
-        var usersArray: [User] = []
-        for (index, stat) in statistics.enumerated() {
-            for user in users {
-                if user.id == stat.user_id {
-//                    usersArray.isEmpty ? usersArray = [] : usersArray.append(user)
-                }
-            }
-        }
+              let statistics = statistics else { return }
+        addChart1()
+        addChart2()
+        addChart3()
+        setupLabels()
         self.usersTableView.reloadData()
     }
     
@@ -97,7 +154,6 @@ class ViewController: UIViewController {
     @objc private func refreshAllData() {
         NetworkManager.shared.fetchUsers()
         NetworkManager.shared.getStatistics()
-//        refreshControl.removeTarget(self, action: #selector(refreshAllData), for: UIControl.Event.valueChanged)
     }
 }
 
@@ -179,7 +235,10 @@ extension ViewController: UITableViewDataSource, UITableViewDelegate {
     
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let cell = tableView.dequeueReusableCell(withIdentifier: "userCell") as! UserCell
-        guard let users = users else { return cell }
+        cell.selectionStyle = .none
+//        guard let users = users else { return cell }
+        let users = StorageManager.shared.getTopVisitors()
+        if users.isEmpty { return cell }
         let user = users[indexPath.row]
         cell.nameLabel.text = "\(user.username), \(user.age)"
         let files = Array<File>(_immutableCocoaArray: user.files)

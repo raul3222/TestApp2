@@ -59,8 +59,7 @@ public class NetworkManager {
             guard let response = response as? HTTPURLResponse,
                   response.statusCode == 200 else { return }
             do {
-                let statistics = try JSONDecoder().decode(Statistics.self, from: data)
-                print(statistics)
+                var statistics = try JSONDecoder().decode(Statistics.self, from: data)
                 Task {
                     try? await StorageManager.shared.save(statistics: statistics)
                 }

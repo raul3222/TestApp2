@@ -2,7 +2,7 @@
 //  FilterCell.swift
 //  TestApp2
 //
-//  Created by Raul Shafigin on 18.09.2024.
+//  Created by Raul Shafigin on 19.09.2024.
 //
 
 import UIKit
