@@ -88,6 +88,7 @@ class ViewController: UIViewController {
     
     private func addChart3() {
         let vc = UIHostingController(rootView: BarChart())
+        
            let swiftuiView = vc.view!
            swiftuiView.translatesAutoresizingMaskIntoConstraints = false
             sexAgeView.addSubview(swiftuiView)
@@ -211,6 +212,10 @@ extension ViewController: UICollectionViewDataSource, UICollectionViewDelegate, 
             previousUsersSelectedCell = indexPath
         default: break
         }
+    }
+    
+    private func updateChart() {
+        
     }
     
     private func setSelectedCell(for indexPath: IndexPath, from collectionView: UICollectionView) {

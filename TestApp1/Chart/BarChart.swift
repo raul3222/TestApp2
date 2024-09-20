@@ -16,8 +16,6 @@ struct ChartData: Identifiable, Equatable {
     var id: String { return type }
 }
 struct BarChart: View {
-   
-    
     var body: some View {
 
         AgeElement(age1: 15, age2: 21)

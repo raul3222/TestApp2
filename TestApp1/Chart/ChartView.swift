@@ -17,11 +17,6 @@ struct ChartView: View {
     let stat = StorageManager.shared.statistics!
     var body: some View {
         Chart {
-//            ForEach(testDate, id: \.self) { date in
-//                LineMark(x: .value("Type", "\(date)"),
-//                         y: .value("Population", 0.1))
-//                       .foregroundStyle(.pink)
-//            }
             LineMark(x: .value("Type", "\(testDate[0])"),
                      y: .value("Test", 1))
                    .foregroundStyle(.pink)
@@ -44,7 +39,6 @@ struct ChartView: View {
                      y: .value("Test", 6))
                    .foregroundStyle(.pink)
         }
-//        .aspectRatio(1, contentMode: .fill)
                .padding()
     }
 }

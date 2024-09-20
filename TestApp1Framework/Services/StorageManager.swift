@@ -9,6 +9,11 @@ import Foundation
 import RealmSwift
 import Combine
 
+enum SelectedPeriod {
+    case today
+    case week
+    case month
+}
 
 public class StorageManager {
     private init() {}
@@ -40,23 +45,6 @@ public class StorageManager {
     var dat = Set<Int>()
     public var normalDatesArray: [String] = []
     
-    private func normalDate() {
-//        var normalDates: [Date] = []
-        for d in dat {
-            let normal = NSDate(timeIntervalSince1970: Double(d)) as Date
-            let components = normal.get(.day, .month)
-            var resultMonth = ""
-            if let day = components.day, var month = components.month {
-                if month < 10 {
-                    resultMonth = "0\(month)"
-                } else {
-                    resultMonth = "\(month)"
-                }
-                normalDatesArray.append("\(day).\(resultMonth)")
-            }
-        }
-    }
-    
     @MainActor func save(statistics: Statistics) async throws {
         self.statistics = Array(_immutableCocoaArray: statistics.statistics)
         createDateArrays(from: statistics)
@@ -66,39 +54,10 @@ public class StorageManager {
         }
     }
     
-    private func createDateArrays(from statistics: Statistics) {
-        for st in statistics.statistics {
-            var dateArray: [Int] = []
-            for dat in st.dates {
-                self.dat.insert(dat)
-                if dates.contains(where: {$0.key == st.user_id}) {
-                    dates[st.user_id]?.append(dat)
-                } else {
-                    dateArray.append(dat)
-                }
-                
-            }
-            normalDate()
-            if !dateArray.isEmpty {
-                self.dates[st.user_id] = dateArray
-            }
-            dateArray = []
-        }
-        userIds = Array(dates.keys)
-
-    }
-    
     @MainActor func save(users: Users) async throws {
          self.users = Array(_immutableCocoaArray: users.users)
         
-        for user in users.users {
-            if user.sex == "M" {
-                male += 1
-            } else {
-                female += 1
-            }
-        }
-        
+        countGender(for: users)
         let realm = try! await Realm()
         try! realm.write {
             realm.add(users)
@@ -108,13 +67,7 @@ public class StorageManager {
       public func getUsers() -> Bool {
         let realm = try! Realm()
           guard let users = realm.objects(Users.self).first else { return false}
-          for user in users.users {
-              if user.sex == "M" {
-                  male += 1
-              } else {
-                  female += 1
-              }
-          }
+          countGender(for: users)
           self.users = Array(_immutableCocoaArray: users.users)
           return true
       }
@@ -178,6 +131,92 @@ public class StorageManager {
             }
         }
         return (Double(maleCount) / Double(users.count) * 100, Double(femaleCount) / Double(users.count) * 100)
+    }
+    
+    private func normalDate() {
+//        var normalDates: [Date] = []
+        for d in dat {
+            let normal = NSDate(timeIntervalSince1970: Double(d)) as Date
+            let components = normal.get(.day, .month)
+            var resultMonth = ""
+            if let day = components.day, var month = components.month {
+                if month < 10 {
+                    resultMonth = "0\(month)"
+                } else {
+                    resultMonth = "\(month)"
+                }
+                normalDatesArray.append("\(day).\(resultMonth)")
+            }
+        }
+    }
+    
+    private func createDateArrays(from statistics: Statistics) {
+        for st in statistics.statistics {
+            var dateArray: [Int] = []
+            for dat in st.dates {
+                self.dat.insert(dat)
+                if dates.contains(where: {$0.key == st.user_id}) {
+                    dates[st.user_id]?.append(dat)
+                } else {
+                    dateArray.append(dat)
+                }
+                
+            }
+            normalDate()
+            if !dateArray.isEmpty {
+                self.dates[st.user_id] = dateArray
+            }
+            dateArray = []
+        }
+        userIds = Array(dates.keys)
+
+    }
+    
+    private func countGender(for users: Users) {
+        for user in users.users {
+            if user.sex == "M" {
+                male += 1
+            } else {
+                female += 1
+            }
+        }
+    }
+    
+    public func checkTodayVisitors() -> (Int, Int) {
+        var todayVisitors: [Int] = []
+        let currentDate = Date()
+        let currentComponents = currentDate.get(.day, .month, .year)
+        guard let statistics = statistics else { return (0, 0) }
+        for stat in statistics {
+            for date in stat.dates {
+                let date = Date(timeIntervalSince1970: Double(date))
+                let dateComponents = date.get(.day, .month, .year)
+                if dateComponents.day == currentComponents.day &&
+                    dateComponents.month == currentComponents.month &&
+                    dateComponents.year == currentComponents.year {
+                    todayVisitors.append(stat.user_id)
+                }
+            }
+        }
+        return getTodayVisitorsBySex(visitors: todayVisitors)
+    }
+    
+    private func getTodayVisitorsBySex(visitors: [Int]) -> (Int, Int) {
+        guard let users = self.users else { return (0, 0)}
+        var male = 0
+        var female = 0
+        for visitor in visitors {
+            for user in users {
+                if visitor == user.id {
+                    switch user.sex {
+                    case "M": male += 1
+                    case "W": female += 1
+                    default: break
+                    }
+                }
+            }
+        }
+        return (male, female)
     }
 }
 
